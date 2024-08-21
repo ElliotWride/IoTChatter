@@ -1,0 +1,30 @@
+#include <RH_ASK.h>
+#include <SPI.h> // Not used but required for RH_ASK
+
+// Create an instance of the RH_ASK class
+RH_ASK rf_driver;
+
+void setup() {
+  // Initialize the RF driver
+  if (!rf_driver.init()) {
+    Serial.begin(9600);
+    Serial.println("RF module initialization failed");
+    while (1);
+  }
+  
+  Serial.begin(9600);
+  Serial.println("Receiver ready");
+}
+
+void loop() {
+  // Buffer to hold incoming data
+  uint8_t buf[12];
+  uint8_t buflen = sizeof(buf);
+
+  // Check if there is a message available
+  if (rf_driver.recv(buf, &buflen)) {
+    // Print the received message
+    Serial.print("Received: ");
+    Serial.println((char*)buf);
+  }
+}
