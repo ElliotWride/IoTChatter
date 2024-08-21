@@ -1,0 +1,31 @@
+#include <RH_ASK.h>
+#include <SPI.h> // Not used but required for RH_ASK
+
+// Create an instance of the RH_ASK class
+RH_ASK rf_driver;
+
+void setup() {
+  // Initialize the RF driver
+  if (!rf_driver.init()) {
+    Serial.begin(9600);
+    Serial.println("RF module initialization failed");
+    while (1);
+  }
+  
+  Serial.begin(9600);
+  Serial.println("Transmitter ready");
+}
+
+void loop() {
+  // Define the message to send
+  const char *message = "Hello from Nano";
+
+  // Send the message
+  rf_driver.send((uint8_t *)message, strlen(message));
+  rf_driver.waitPacketSent();
+  
+  Serial.print("Sent: ");
+  Serial.println(message);
+  
+  delay(1000); // Delay between messages
+}
