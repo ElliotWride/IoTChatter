@@ -1,0 +1,70 @@
+#include <RH_ASK.h>
+#include <SPI.h> // Not used but needed to compile
+
+RH_ASK driver(2000, 12, 11, -1); // 2000 bps, Pin 12 for TX, Pin 11 for RX
+
+const char* messages[] = {
+    "Arduino 1: Message 1",
+    "Arduino 1: Message 2",
+    "Arduino 1: Done"
+};
+const int messageCount = sizeof(messages) / sizeof(messages[0]);
+int currentMessageIndex = 0;
+
+void setup() {
+    Serial.begin(9600); // For debugging
+    if (!driver.init()) {
+        Serial.println("Initialization failed");
+    }
+}
+
+void loop() {
+    if (currentMessageIndex < messageCount) {
+        if (sendMessage(messages[currentMessageIndex])) {
+            Serial.println("Message sent and acknowledged");
+            currentMessageIndex++;
+        } else {
+            Serial.println("Message sending failed, retrying...");
+        }
+    }
+    
+    // Receiving part
+    char buf[RH_ASK_MAX_MESSAGE_LEN];
+    if (receiveMessage(buf)) {
+        Serial.print("Received: ");
+        Serial.println(buf);
+
+        // Send acknowledgment back
+        sendMessage("ACK");
+    }
+
+    delay(1000); // Wait before retrying
+}
+
+bool sendMessage(const char* message) {
+    driver.send((uint8_t *)message, strlen(message));
+    driver.waitPacketSent();
+    Serial.print("Sent: ");
+    Serial.println(message);
+
+    // Wait for acknowledgment
+    unsigned long startTime = millis();
+    while (millis() - startTime < 1000) { // 1 second timeout
+        char buf[RH_ASK_MAX_MESSAGE_LEN];
+        if (receiveMessage(buf)) {
+            if (strcmp(buf, "ACK") == 0) {
+                return true; // Acknowledgment received
+            }
+        }
+    }
+    return false; // No acknowledgment received
+}
+
+bool receiveMessage(char* buf) {
+    uint8_t buflen = RH_ASK_MAX_MESSAGE_LEN;
+    if (driver.recv((uint8_t*)buf, &buflen)) {
+        buf[buflen] = '\0'; // Null-terminate the string
+        return true;
+    }
+    return false;
+}
